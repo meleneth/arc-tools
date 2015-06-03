@@ -1,0 +1,28 @@
+#!/usr/bin/env ruby
+
+# ask couchdb if the given filenames exist, and show it
+
+require 'rubygems'
+require 'awesome_print'
+require 'optparse'
+require 'couchrest'
+require 'socket'
+
+check_path = ARGV.pop
+
+db = CouchRest.database!("http://rinzler:5984/archimedes-media")
+
+view = {'media_by_name' => {'map' => <<-JS
+function(doc) {
+    emit(doc.filename, doc._id);
+}
+
+JS
+}}
+
+db.save_doc({
+  "_id" => "_design/media_by_name",
+  :views => view
+})
+
+
