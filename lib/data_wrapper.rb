@@ -7,8 +7,12 @@ class DataWrapper
     if method =~ /=$/
       @data[$`] = args[0]
     else
-      @data[method]
+      @data[method.to_s]
     end
+  end
+
+  def respond_to?(method)
+    return @data.has_key? method.to_s
   end
 end
 

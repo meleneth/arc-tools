@@ -8,21 +8,11 @@ require 'table_print'
 require 'optparse'
 require 'couchrest'
 require 'socket'
+require 'pathname'
 
-class DataWrapper
-  def initialize(data)
-    @data = data
-  end
+$LOAD_PATH << File.expand_path(File.join(*%w[ .. lib ]), Pathname.new(File.expand_path(__FILE__)).realpath.dirname)
 
-  def method_missing(method, *args)
-    if method =~ /=$/
-      @data[$`] = args[0]
-    else
-      @data[method]
-    end
-  end
-end
-
+require 'data_wrapper'
 
 db = CouchRest.database!("http://rinzler:5984/archimedes-media")
 
@@ -36,11 +26,12 @@ ARGV.each do |filename|
 
   if row["rows"].count > 0
     puts "YES #{filename}"
+    data = []
     row["rows"].each do |row|
       document = db.get row["id"]
-      ap document
-      tp DataWrapper.new(document), :media, :case, :path, :size
+      data << DataWrapper.new(document)
     end
+    tp data, "media", "media_label", "case", "location", "path", "size"
   else
     puts "NO  #{filename}"
   end
