@@ -10,19 +10,49 @@ require 'socket'
 
 check_path = ARGV.pop
 
-db = CouchRest.database!("http://rinzler:5984/archimedes-media")
-
-view = {'media_by_name' => {'map' => <<-JS
+def js_map_func(func_text)
+  return <<-JS
 function(doc) {
-    emit(doc.filename, doc._id);
+    #{func_text}
 }
-
 JS
-}}
+end
 
-db.save_doc({
-  "_id" => "_design/media_by_name",
-  :views => view
-})
+def js_reduce_func(func_text)
+  return <<-JS
+function(keys, values) {
+    #{func_text}
+}
+JS
+end
 
+def make_map_view(view_name, view_func)
+  db = CouchRest.database!("http://rinzler:5984/archimedes-media")
+#  db.delete_doc("_design/#{view_name}")
+  db.save_doc({
+    "_id" => "_design/#{view_name}",
+    :views => {
+      view_name => {
+        "map" => js_map_func(view_func)
+      }
+    }
+  })
+end
+
+def make_reduce_view(view_name, view_func)
+  db = CouchRest.database!("http://rinzler:5984/archimedes-media")
+#  db.delete_doc("_design/#{view_name}")
+  db.save_doc({
+    "_id" => "_design/#{view_name}",
+    :views => {
+      view_name => {
+        "reduce" => js_map_func(view_func)
+      }
+    }
+  })
+end
+
+make_map_view("media_by_name", "emit(doc.filename, doc._id)")
+make_map_view("media_case", "emit(doc.case, doc.size)")
+make_map_view("media_size_by_path", "emit(doc.path, doc.size)")
 
