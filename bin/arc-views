@@ -26,33 +26,19 @@ function(keys, values) {
 JS
 end
 
-def make_map_view(view_name, view_func)
+def make_view(view_name, map_view_func, reduce_view_func)
   db = CouchRest.database!("http://rinzler:5984/archimedes-media")
 #  db.delete_doc("_design/#{view_name}")
-  db.save_doc({
-    "_id" => "_design/#{view_name}",
-    :views => {
-      view_name => {
-        "map" => js_map_func(view_func)
-      }
-    }
-  })
+  doc = { "_id" => "_design/#{view_name}", :views => {view_name => {}} }
+  doc[:views][view_name]["map"] = js_map_func(map_view_func) if map_view_func
+  doc[:views][view_name]["reduce"] = js_reduce_func(reduce_view_func) if reduce_view_func
+
+  db.save_doc(doc)
 end
 
-def make_reduce_view(view_name, view_func)
-  db = CouchRest.database!("http://rinzler:5984/archimedes-media")
-#  db.delete_doc("_design/#{view_name}")
-  db.save_doc({
-    "_id" => "_design/#{view_name}",
-    :views => {
-      view_name => {
-        "reduce" => js_map_func(view_func)
-      }
-    }
-  })
-end
-
-make_map_view("media_by_name", "emit(doc.filename, doc._id)")
-make_map_view("media_case", "emit(doc.case, doc.size)")
-make_map_view("media_size_by_path", "emit(doc.path, doc.size)")
+make_view("media_by_name", "emit(doc.filename, doc._id)", nil)
+make_view("media_case", "emit(doc.case, null)", "return true")
+make_view("media_info", "emit([doc.case, doc.location, doc.media_label, doc.path, doc.filename], doc.size)", "_sum")
+make_view("media_case_paths", "emit([doc.case, doc.path], null)", "return true")
+make_view("media_path", "emit(doc.path, null)", "return true")
 
